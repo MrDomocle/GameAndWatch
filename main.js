@@ -37,16 +37,6 @@ let input = inputEmpty();
 let hit = inputEmpty();
 let drawFuncs = [];
 
-function highlightPoint(sx, sy, horiz) {
-  drawFuncs.push(() => {
-    ctx.save();
-    ctx.globalAlpha = 1;
-    ctx.fillStyle = horiz ? '#0f0' : '#f00';
-    ctx.fillRect(sx, sy, 1, 1);
-    ctx.restore();
-  });
-}
-
 function highlightTile(tx, ty, horiz) {
   tx *= 16;
   ty *= 16;
@@ -78,6 +68,7 @@ const brickImg = document.getElementById("brickImg");
 const marioImg = {
   bn: document.getElementById("m-bn"),
   bj: document.getElementById("m-bj"),
+  bc: document.getElementById("m-bc"),
   bskid: document.getElementById("m-bskid"),
   brun0: document.getElementById("m-brun0"),
   brun1: document.getElementById("m-brun1"),
@@ -110,8 +101,8 @@ function drawScreen({
       }
     }
   }
-  console.log(lookDir);
-  if (lookDir < 0) {
+
+  if (lookDir < 0) { // unholy mirroring with canvas hacks
     ctx.save();
     ctx.translate(Math.floor(playerX)+16, Math.floor(playerY));
     ctx.scale(-1,1);
@@ -401,14 +392,16 @@ function tick() {
   if (hitDir != 0 && !playerInAir) lookDir = hitDir;
 
   const absDX = Math.abs(playerDX)
-
-  if (absDX > 0 && !playerInAir) {
-    spriteAnimTime++;
-    currSprite = (playerIsBig ? "b" : "s") + "run";
-    currSprite += ( spriteAnimTime >> (3 - Math.floor(absDX)) ) % 3;
-  } else if (absDX == 0) {
-    spriteAnimTime = 0;
-    currSprite = (playerIsBig ? "b" : "s") + "n";
+  if (!playerInAir) {
+    if (absDX > 0) {
+      spriteAnimTime++;
+      currSprite = (playerIsBig ? "b" : "s") + "run";
+      currSprite += ( spriteAnimTime >> (3 - Math.floor(absDX)) ) % 3;
+    } else if (absDX == 0) {
+      spriteAnimTime = 0;
+      currSprite = (playerIsBig ? "b" : "s") + "n";
+    }
+    if (playerIsDucking) currSprite = "bc";
   }
 
   if (hitDir === 0) {
@@ -448,7 +441,7 @@ function tick() {
     const dx = Math.floor(Math.abs(playerDX));
     playerDY = JUMP_FORCE[dx];
     playerInAir = true;
-    currSprite = (playerIsBig ? "b" : "s") + "j";
+    if (!playerIsDucking) currSprite = (playerIsBig ? "b" : "s") + "j";
   }
   if (playerInAir) {
     if (playerDY < -2 && input.a) {
@@ -553,7 +546,6 @@ function tick() {
 function getTileFromPlayer({ x: dx, y: dy }, horiz) {
   const sx = Math.floor(playerX) + dx;
   const sy = Math.floor(playerY) + dy;
-  highlightPoint(sx, sy, horiz);
   const tx = Math.floor(sx / 16);
   let ty = Math.floor(sy / 16);
   if (ty < 0) {
