@@ -535,7 +535,7 @@ function tick() {
 
   // edge
   if (playerX >= 16*(world[0].length+1)) {
-    playerX = 0;
+    playerX = -16;
   }
   if (playerX < -16) {
     playerX = 16*(world[0].length+1);
