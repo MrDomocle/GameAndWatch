@@ -25,7 +25,7 @@ a:hover, a:active {
 #cnv {
   display: block;
   width: 768px;
-  height: 448px;
+  height: 576px;
   margin: 20px auto;
   border-radius: 5px;
 }
@@ -38,7 +38,23 @@ button {
   </style>
 </head>
 <body>
-  <canvas id="cnv" width="1536" height="896"></canvas>
+  <img id="brickImg" src="gfx/brick.png" hidden>
+
+  <img id="m-brun0" src="gfx/m-brun0.png" hidden>
+  <img id="m-brun1" src="gfx/m-brun1.png" hidden>
+  <img id="m-brun2" src="gfx/m-brun2.png" hidden>
+  <img id="m-bskid" src="gfx/m-bskid.png" hidden>
+  <img id="m-bj" src="gfx/m-bj.png" hidden>
+  <img id="m-bn" src="gfx/m-bn.png" hidden>
+
+  <img id="m-srun0" src="gfx/m-srun0.png" hidden>
+  <img id="m-srun1" src="gfx/m-srun1.png" hidden>
+  <img id="m-srun2" src="gfx/m-srun2.png" hidden>
+  <img id="m-sskid" src="gfx/m-sskid.png" hidden>
+  <img id="m-sj" src="gfx/m-sj.png" hidden>
+  <img id="m-sn" src="gfx/m-sn.png" hidden>
+
+  <canvas id="cnv" width="256" height="192" style="image-rendering: pixelated;"></canvas>
   <p>Controls: Arrow keys, X (Jump), Z (Run), Enter (Size), Mouse (Draw)</p>
   <p>
     Speed:

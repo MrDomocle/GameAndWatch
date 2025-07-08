@@ -1,7 +1,8 @@
 const cnv = document.getElementById('cnv');
 const ctx = cnv.getContext('2d');
-let dpr = 4;
-ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+let dpr = 6;
+ctx.setTransform(1, 0, 0, 1, 0, 0);
+ctx.imageSmoothingEnabled = false;
 
 function zoom(zin) {
   dpr = Math.max(4, dpr += zin);
@@ -71,6 +72,23 @@ function highlightTile(tx, ty, horiz) {
   });
 }
 
+
+// MARK:  Graphics
+const brickImg = document.getElementById("brickImg");
+const marioImg = {
+  bn: document.getElementById("m-bn"),
+  bj: document.getElementById("m-bj"),
+  bskid: document.getElementById("m-bskid"),
+  brun0: document.getElementById("m-brun0"),
+  brun1: document.getElementById("m-brun1"),
+  brun2: document.getElementById("m-brun2"),
+};
+const runFrameSpeed = 1; // divided by speed to get ticks to next walk frame
+let currSprite = "bn";
+let spriteAnimTime = 0;
+let spriteAnimSpeed = 8;
+let lookDir = 1;
+
 function drawScreen({
   playerX,
   playerY,
@@ -78,35 +96,34 @@ function drawScreen({
   rightEdgeOffset,
   heightOffset,
 }) {
+  ctx.beginPath();
+  ctx.fillStyle = "cornflowerblue";
+  ctx.rect(0,0,256,192);
+  ctx.fill();
   for (let y = 0; y < world.length; y++) {
     const row = world[y];
     for (let x = 0; x < row.length; x++) {
       const ch = row[x];
       const isSolid = ch === '#';
-      ctx.fillStyle = isSolid ? '#aaa' : '#333';
-      ctx.beginPath();
-      ctx.rect(
-        x * 16,
-        y * 16,
-        16, 16
-      );
-      ctx.fill();
+      if (isSolid) {
+        ctx.drawImage(brickImg, x*16, y*16);
+      }
     }
   }
+  console.log(lookDir);
+  if (lookDir < 0) {
+    ctx.save();
+    ctx.translate(Math.floor(playerX)+16, Math.floor(playerY));
+    ctx.scale(-1,1);
+    ctx.drawImage(marioImg[currSprite], 0, 0);
+    ctx.restore();
+  } else {
+    ctx.drawImage(marioImg[currSprite], Math.floor(playerX), Math.floor(playerY));
+  }
 
-  ctx.fillStyle = '#0ff';
-  ctx.fillRect(
-    Math.floor(playerX) + leftEdgeOffset,
-    Math.floor(playerY) + heightOffset + 1,
-    rightEdgeOffset - leftEdgeOffset,
-    31 - heightOffset
-  );
   for (const f of drawFuncs) {
     f();
   }
-  ctx.fillStyle = '#fff';
-  ctx.fillRect(Math.floor(playerX), Math.floor(playerY), 1, 1);
-  ctx.strokeStyle = '#ddd';
   ctx.beginPath();
   ctx.rect(mpos[0] * 16, mpos[1] * 16, 16, 16);
   ctx.stroke();
@@ -226,20 +243,18 @@ const GRAVITY_FAST = 5;
 const JUMP_FORCE = [-3.5, -3.625, -3.75, -4];
 
 const world = `
-########################
-#                      #
-#                      #
-#                      #
-#                    ###
-#       ##             #
-#                      #
-#    ###########       #
-#                     ##
-##                    ##
-##      ###           ##
-##        ###         ##
-##                    ##
-########################
+################
+                
+                
+                
+                
+                
+                
+                
+                
+                
+                
+               x
 `.trim().split('\n').map(n => n.split(''));
 
 const tileCollisionOffsets = {
@@ -383,6 +398,19 @@ function tick() {
   const accelSkid = 32;
   const accelNormal = 14;
   const hitDir = input.left ? -1 : input.right ? 1 : 0;
+  if (hitDir != 0 && !playerInAir) lookDir = hitDir;
+
+  const absDX = Math.abs(playerDX)
+
+  if (absDX > 0 && !playerInAir) {
+    spriteAnimTime++;
+    currSprite = (playerIsBig ? "b" : "s") + "run";
+    currSprite += ( spriteAnimTime >> (3 - Math.floor(absDX)) ) % 3;
+  } else if (absDX == 0) {
+    spriteAnimTime = 0;
+    currSprite = (playerIsBig ? "b" : "s") + "n";
+  }
+
   if (hitDir === 0) {
     if (!playerInAir) {
       if (playerDX < 0) {
@@ -398,13 +426,14 @@ function tick() {
       }
     }
   } else {
-    const absDX = Math.abs(playerDX)
     if (
       (playerDX > 0 && hitDir < 0) ||
       (playerDX < 0 && hitDir > 0)
     ) {
       // player is voluntarily slowing down (skidding), so let them!
       playerDX += hitDir * accelSkid / 256;
+      if (!playerInAir) currSprite = (playerIsBig ? "b" : "s") + "skid";
+
     } else if (absDX < topSpeed) {
       playerDX += hitDir * accelNormal / 256;
     } else if (absDX > topSpeed) {
@@ -419,6 +448,7 @@ function tick() {
     const dx = Math.floor(Math.abs(playerDX));
     playerDY = JUMP_FORCE[dx];
     playerInAir = true;
+    currSprite = (playerIsBig ? "b" : "s") + "j";
   }
   if (playerInAir) {
     if (playerDY < -2 && input.a) {
@@ -528,7 +558,7 @@ function getTileFromPlayer({ x: dx, y: dy }, horiz) {
   let ty = Math.floor(sy / 16);
   if (ty < 0) {
     ty = 0;
-  } else if (ty >= world.length) {
+  } else if (ty >= world.length-2) {
     return true;
   }
   const row = world[ty];
